@@ -17,20 +17,20 @@ const MyComponent = ({ data } : Props) => {
         }
     })
     return (
-        <table className="w-full border border-black border-collapse">
-            <thead className="border border-black">
+        <table className="w-full border-collapse border border-black">
+            <thead>
                 <tr>
-                    <th className="border border-black">NO</th>
-                    <th className="border border-black">NAME</th>
-                    <th className="border border-black">DEPARTMENT</th>
+                    <th className="border border-black p-2 text-left w-16">NO.</th>
+                    <th className="border border-black p-2 text-left">NAME</th>
+                    <th className="border border-black p-2 text-left">DEPARTMENT</th>
                 </tr>
             </thead>
             <tbody>
-                {rows.map((row, index) => (
-                    <tr key={index}>
-                        <td className="border border-black text-center border-collapse">{row.no}</td>
-                        <td className="border border-black">{row.name}</td>
-                        <td className="border border-black">{row.department}</td>
+            {rows.map((row, index) => (
+              <tr key={index}>
+                  <td className="border border-black p-2">{row.no}</td>
+                  <td className="border border-black p-2">{row.name}</td>
+                  <td className="border border-black p-2">{row.department}</td>
                     </tr>
                 ))}
             </tbody>

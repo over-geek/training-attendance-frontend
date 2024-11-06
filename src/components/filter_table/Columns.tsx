@@ -3,6 +3,7 @@ import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Button } from "@/components/ui/button"
 import { Training } from "./data/type"
 import { TableActions } from "./tableActions"
+import { Badge } from "@/components/ui/badge.tsx";
 
 export const columns: ColumnDef<Training>[] = [
     {
@@ -36,7 +37,14 @@ export const columns: ColumnDef<Training>[] = [
     {
         accessorKey: "trainingType",
         header: "Type",
-        cell: ({ row }) => <div className="lowercase">{row.getValue("trainingType")}</div>,
+        cell: ({ row }) => (
+            <Badge
+                className="lowercase flex justify-center"
+                variant={row.getValue('trainingType') === 'Staff Training' ? 'success' : 'purple'}
+            >
+                {row.getValue("trainingType")}
+            </Badge>
+        ),
     },
     {
         accessorKey: "duration",

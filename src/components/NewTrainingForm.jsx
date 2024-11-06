@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { addTraining } from "@/components/filter_table/data/trainingData";
 import { useToast } from "@/hooks/use-toast.ts";
-import { Button } from "@/components/ui/button"
 
 const NewTrainingForm = () => {
   const { toast } = useToast();

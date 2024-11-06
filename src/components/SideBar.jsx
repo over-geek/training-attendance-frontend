@@ -1,17 +1,17 @@
 import { Link } from 'react-router-dom'
-import logo from '../../../../projects/test/src/assets/images/logo.svg'
-import {HomeIcon} from "@heroicons/react/20/solid/index.js";
-import reportIcon from "../../../../projects/test/src/assets/images/reportIcon.png";
-import responseIcon from "../../../../projects/test/src/assets/images/responseIcon.png";
-import attendanceIcon from "../../../../projects/test/src/assets/images/attendanceIcon.png";
-import trainingIcon from "../../../../projects/test/src/assets/images/training.png"
-import dashboardIcon from "../../../../projects/test/src/assets/images/dashboard.png"
+import logo from '../assets/images/logo.svg'
+import logoImg from '../assets/images/logo_icps.png'
+import reportIcon from '../assets/images/reportIcon.png';
+import responseIcon from '../assets/images/responseIcon.png'
+import attendanceIcon from '../assets/images/attendanceIcon.png'
+import trainingIcon from '../assets/images/training.png'
+import dashboardIcon from '../assets/images/dashboard.png'
 
 const SideBar = () => {
   return (
-    <div className='w-1/6 lg:w-1/5 border-x pt-4 px-5 h-full flex-shrink-0'>
-      <div className='w-full flex justify-center items-center gap-5'>
-        <img src={logo} alt="logo" className='w-32'/>
+    <div className='w-1/6 border-x pt-4 px-5 h-full flex-shrink-0'>
+      <div className='w-full flex justify-start items-center gap-5'>
+        <img src={logoImg} alt="logo" className='w-32'/>
       </div>
       
       <nav className='mt-12'>

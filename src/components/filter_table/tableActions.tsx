@@ -52,62 +52,35 @@ export const TableActions = ({ row, onDelete }: TableActionsProps) => {
         }
     };
 
-    const handleExport = async () => {
+    const downloadPDF = async (trainingId) => {
+        setIsExporting(true)
         try {
-            setIsExporting(true)
+            const response = await fetch(`http://localhost:8080/api/attendance/logs/${trainingId}/pdf`, {
+                method: 'GET',
+            });
 
-            const response = await fetch(`http://localhost:8080/api/attendance/logs/${training.id}`)
-            if (!response.ok) {
-                throw new Error ('Failed to fetch training data')
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'attendance_log.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
             }
-            const attendanceData = await response.json();
-
-            const tempContainer = document.createElement("div");
-            tempContainer.id = `training-export-${training.id}`;
-            tempContainer.style.position = "absolute";
-            tempContainer.style.left = '-9999px'
-            document.body.appendChild(tempContainer);
-
-            const root = createRoot(tempContainer);
-            root.render(
-                <TrainingAttendanceForm
-                    training={{
-                        title: attendanceData.trainingName,
-                        type: attendanceData.trainingType,
-                        date: new Date(attendanceData.trainingDate).toLocaleDateString(),
-                        time: attendanceData.startTime,
-                        duration: `${attendanceData.duration} hour(s)`,
-                        facilitator: attendanceData.facilitator,
-                        attendees: attendanceData.attendees.map((attendee: any) => ({
-                            name: attendee.employeeName,
-                            department: attendee.employeeDepartment
-                        }))
-                    }}
-                    isPdfExport={true}
-                />
-            );
-
-            await new Promise(resolve => setTimeout(resolve, 500))
-
-            await exportPDF(tempContainer, {
-                filename: `${attendanceData.trainingName}-Attendance.pdf`,
-                pageSize: 'a4',
-                orientation: 'portrait',
-                scale: 2
-            })
-
-        } catch (err) {
-            console.error("Export failed: ", err)
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
             toast({
                 variant: "destructive",
                 description: "Failed to export training attendance",
                 title: "Export failed",
             })
+        } finally {
+            setIsExporting(false)
         }
-        finally {
-            setIsExporting(true)
-        }
-    }
+
+    };
 
     return (
         <MenuRoot>
@@ -167,7 +140,7 @@ export const TableActions = ({ row, onDelete }: TableActionsProps) => {
                             size="sm"
                             className="w-full justify-start"
                             disabled={isExporting}
-                            onClick={handleExport}
+                            onClick={() => downloadPDF(training.id)}
                         >
                             {isExporting ? (
                                 <>

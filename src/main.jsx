@@ -11,6 +11,12 @@ import TrainingsHome from "./pages/TrainingsHome.jsx";
 import NewTraining from "./pages/NewTraining.jsx";
 import './index.css'
 import App from './App.jsx'
+import EvaluationPage from "./pages/Evaluation/EvaluationPage.jsx";
+import HomePage from "./pages/Evaluation/HomePage.jsx";
+import GradingPage from "./pages/Evaluation/GradingPage.jsx";
+import QuestionsPage from "./pages/Evaluation/QuestionsPage.jsx";
+import OverallPage from "./pages/Evaluation/OverallPage.jsx";
+import SuccessPage from './pages/Evaluation/SuccessPage.jsx';
 
 const router = createBrowserRouter([
     {
@@ -25,6 +31,13 @@ const router = createBrowserRouter([
             { path: 'reports', element: <Reports /> },
             { path: 'responses', element: <Responses /> },
             { path: 'attendance-logs', element: <AttendanceLogs /> },
+            { path: 'evaluation/:token', element: <EvaluationPage />, children: [
+                {path: '', element: <HomePage />},
+                {path: '1', element: <GradingPage />},
+                {path: '2', element: <QuestionsPage />},
+                {path: '3', element: <OverallPage />},
+                {path: 'success', element: <SuccessPage />}
+              ] },
         ],
     },
 ]);

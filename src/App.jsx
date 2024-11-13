@@ -2,15 +2,17 @@ import './App.css'
 import { Outlet } from 'react-router-dom'
 import {Toaster} from "@/components/ui/toaster"
 import SideBar from './components/SideBar'
-import TopNav from './components/TopNav'
+import {useLocation} from "react-router-dom";
 
 function App() {
+  const location = useLocation();
+
+  const isEvaluationPage = location.pathname.includes("/evaluation");
 
     return (
         <div className='flex h-screen overflow-hidden'>
-            <SideBar />
+          { !isEvaluationPage && <SideBar/>}
             <main className='flex flex-col w-full overflow-hidden'>
-                {/*<TopNav />*/}
                 <div className='flex-grow overflow-hidden'>
                     <Outlet />
                 </div>

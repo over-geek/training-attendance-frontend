@@ -8,3 +8,9 @@ export type Training = {
     time: string;
     status: "upcoming" | "done"
 };
+
+export type Attendance = {
+    id: string;
+    employeeName: string;
+    employeeDepartment: string;
+}

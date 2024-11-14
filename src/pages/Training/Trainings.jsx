@@ -1,6 +1,6 @@
-import PageHeader from '../components/PageHeader.jsx'
+import PageHeader from '../../components/PageHeader.jsx'
 import {Outlet} from "react-router-dom";
-import TopNav from '../components/TopNav.jsx'
+import TopNav from '../../components/TopNav.jsx'
 
 const Trainings = () => {
 

@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
-import StatsCards from "../components/StatsCards.jsx";
-import { DataTable } from "../components/filter_table/dataTable.tsx"
-import {fetchTrainingStats} from "../components/filter_table/data/trainingData.ts";
-import calendarIcon from "../assets/images/calendarIcon.png"
-import teachIcon from "../assets/images/teachIcon.png"
+import StatsCards from "../../components/StatsCards.jsx";
+import { DataTable } from "../../components/filter_table/dataTable.tsx"
+import {fetchTrainingStats} from "../../components/filter_table/data/trainingData.ts";
+import calendarIcon from "../../assets/images/calendarIcon.png"
+import teachIcon from "../../assets/images/teachIcon.png"
 
 const TrainingsHome = () => {
   const [upcomingTrainingsScore, setUpcomingTrainingsScore] = useState(0);

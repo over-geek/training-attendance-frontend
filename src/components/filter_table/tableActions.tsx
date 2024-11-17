@@ -15,12 +15,9 @@ import {
 import {MenuContent, MenuItem, MenuRoot, MenuTrigger} from "@/components/ui/menu";
 
 import { useState} from "react";
-import { createRoot } from "react-dom/client";
-import exportPDF from "@/services/exportPDF"
 
 import {deleteTraining} from "@/components/filter_table/data/trainingData";
 import {useToast} from "@/hooks/use-toast.ts";
-import TrainingAttendanceForm from "@/components/Templates/TrainingAttendanceForm.tsx";
 
 
 interface TableActionsProps {

@@ -18,22 +18,42 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
+import {
+  DialogActionTrigger,
+  DialogContent,
+  DialogBody,
+  DialogFooter,
+  DialogHeader,
+  DialogCloseTrigger,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog"
+
+import {useToast} from "@/hooks/use-toast.ts"
+
 import { Button } from "@/components/ui/button"
+import { Status } from "@/components/ui/status"
+import TrainingQrCode from "../../components/EvaluationQRCode.jsx"
 
 import { columns } from "./AttendanceColumns"
 import { DataTablePagination } from "../../components/filter_table/tablePagination"
 import { Attendance } from "../../components/filter_table/data/type"
 import {useEffect, useState} from "react";
 import axios from "axios";
+import { updateTrainingStatus } from "@/components/filter_table/data/trainingData"
 
 function TrainingDetail() {
     const { id } = useParams()
     const location = useLocation()
-    const training = location.state?.training
-
+    const [training, setTraining] = useState(location.state?.training);
     const [data, setData] = useState<Attendance[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
+    const [remainingTime, setRemainingTime] = useState<number | null>(null)
+    const [isCountingDown, setIsCountingDown] = useState<boolean>(false)
+
+    const { toast } = useToast()
 
     useEffect(() => {
       if (id) {
@@ -42,7 +62,6 @@ function TrainingDetail() {
             setLoading(true)
             const response = await axios.get(`http://localhost:8080/api/attendance/logs/${id}`)
             const logs = response.data.attendees
-            console.log("logs: ", logs)
             setData(logs)
           } catch (error) {
             setError('Failed to load attendance Logs')
@@ -50,10 +69,55 @@ function TrainingDetail() {
             setLoading(false)
           }
         }
-  
         fetchAttendanceLogs()
       }
     }, [id])
+
+    useEffect(() => {
+      let timer: NodeJS.Timeout | undefined;
+      if (isCountingDown && remainingTime !== null && remainingTime > 0) {
+        timer = setInterval(() => {
+          setRemainingTime((prev) => (prev !== null ? prev - 1 : null));
+        }, 1000);
+      }
+      if (remainingTime === 0) {
+        clearInterval(timer);
+        setIsCountingDown(false);
+        toast({
+          description: "Training session has ended!",
+        });
+      }
+      return () => clearInterval(timer);
+    }, [isCountingDown, remainingTime]);
+
+    const handleStartSession = async () => {
+      if (!id) return;
+      const response = await updateTrainingStatus(id, "in progress")
+      if (response) {
+        toast({
+            description: "Training Session Started",
+        });
+        const durationInSeconds = parseInt(training.duration, 10) * 3600; // Convert hours to seconds
+        setRemainingTime(durationInSeconds);
+        setIsCountingDown(true);
+        setTraining((prev) => ({ ...prev, status: response.status }));
+      } else {
+          toast({
+              variant: "destructive",
+              description: "There was a problem starting the training",
+              title: "Uh oh! Something went wrong",
+          });
+      }
+      console.log(response)
+      setTraining((prev) => ({ ...prev, status: response.status }))
+    }
+
+    const formatTime = (seconds: number) => {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hrs > 0 ? `${hrs}h ` : ""}${mins}m ${secs}s`;
+    };
 
     const table = useReactTable({
         data,
@@ -88,10 +152,23 @@ function TrainingDetail() {
                 <p>{training.facilitator}</p>
               </div>
             </div>
-            <div>
-              <Button>Start Session</Button>
+            <div className="flex gap-4">
+              <TrainingQrCode trainingId={id} />
+              {
+                training.status === "upcoming" && (
+                  <Button onClick={handleStartSession}>
+                    {training.status === "upcoming" ? "Start Session" : "End Session"}
+                  </Button>
+                )
+              }
+              
             </div>
           </div>
+          {isCountingDown && remainingTime !== null && (
+            <div className="text-center text-xl font-bold text-red-500">
+              Time Remaining: {formatTime(remainingTime)}
+            </div>
+          )}
           {/* <div className="flex gap-8">
             <StatsCards statTitle="Recorded Responses" statScore={8} />
             <StatsCards statTitle="Recorded Attendees" statScore={totalAttendees} />
@@ -137,7 +214,7 @@ function TrainingDetail() {
                                 colSpan={columns.length}
                                 className="h-24 text-center"
                             >
-                                Session not started yet
+                                {training.status === "in progress" ? (<Status value="success">Session In Progress</Status>) : "Session not started yet"}
                             </TableCell>
                         </TableRow>
                     )}

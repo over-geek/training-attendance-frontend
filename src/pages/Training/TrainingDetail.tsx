@@ -18,17 +18,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
-import {
-  DialogActionTrigger,
-  DialogContent,
-  DialogBody,
-  DialogFooter,
-  DialogHeader,
-  DialogCloseTrigger,
-  DialogRoot,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog"
+import StatsCards from "@/components/StatsCards.jsx"
 
 import {useToast} from "@/hooks/use-toast.ts"
 
@@ -41,6 +31,7 @@ import { DataTablePagination } from "../../components/filter_table/tablePaginati
 import { Attendance } from "../../components/filter_table/data/type"
 import {useEffect, useState} from "react";
 import axios from "axios";
+import { fetchEvalResponseLength } from "@/services/utils.js"
 import { updateTrainingStatus } from "@/components/filter_table/data/trainingData"
 
 function TrainingDetail() {
@@ -52,6 +43,8 @@ function TrainingDetail() {
     const [error, setError] = useState<string | null>(null)
     const [remainingTime, setRemainingTime] = useState<number | null>(null)
     const [isCountingDown, setIsCountingDown] = useState<boolean>(false)
+    const [totalAttendees, setTotalAttendees] = useState<number>(0)
+    const [evalResponseLength, setEvalResponseLength] = useState<number>(0)
 
     const { toast } = useToast()
 
@@ -61,7 +54,10 @@ function TrainingDetail() {
           try {
             setLoading(true)
             const response = await axios.get(`http://localhost:8080/api/attendance/logs/${id}`)
+            const evalResponseLength = await fetchEvalResponseLength(id)
             const logs = response.data.attendees
+            setTotalAttendees(logs.length)
+            setEvalResponseLength(evalResponseLength)
             setData(logs)
           } catch (error) {
             setError('Failed to load attendance Logs')
@@ -112,6 +108,23 @@ function TrainingDetail() {
       setTraining((prev) => ({ ...prev, status: response.status }))
     }
 
+    const handleEndSession = async () => {
+      if (!id) return;
+      const response = await updateTrainingStatus(id, "done")
+      if (response) {
+        toast({
+            description: "Training Session Ended",
+        });
+        setTraining((prev) => ({ ...prev, status: response.status }));
+      } else {
+          toast({
+              variant: "destructive",
+              description: "There was a problem ending the training",
+              title: "Uh oh! Something went wrong",
+          });
+      }
+    }
+
     const formatTime = (seconds: number) => {
       const hrs = Math.floor(seconds / 3600);
       const mins = Math.floor((seconds % 3600) / 60);
@@ -156,12 +169,25 @@ function TrainingDetail() {
               <TrainingQrCode trainingId={id} />
               {
                 training.status === "upcoming" && (
-                  <Button onClick={handleStartSession}>
+                  <Button onClick={handleStartSession} size="sm">
                     {training.status === "upcoming" ? "Start Session" : "End Session"}
                   </Button>
                 )
               }
-              
+              {
+                training.status === "in progress" && (
+                  <Button onClick={handleEndSession} size="sm">
+                    End Session
+                  </Button>
+                )
+              }
+              {
+                training.status === "done" && (
+                  <Button size="sm">
+                    Export Reponses
+                  </Button>
+                )
+              }
             </div>
           </div>
           {isCountingDown && remainingTime !== null && (
@@ -169,10 +195,10 @@ function TrainingDetail() {
               Time Remaining: {formatTime(remainingTime)}
             </div>
           )}
-          {/* <div className="flex gap-8">
-            <StatsCards statTitle="Recorded Responses" statScore={8} />
+          <div className="flex gap-8">
+            <StatsCards statTitle="Recorded Responses" statScore={evalResponseLength} />
             <StatsCards statTitle="Recorded Attendees" statScore={totalAttendees} />
-          </div> */}
+          </div>
           <div className="rounded-md border bg-white">
             <Table>
                 <TableHeader>

@@ -45,6 +45,7 @@ function TrainingDetail() {
     const [isCountingDown, setIsCountingDown] = useState<boolean>(false)
     const [totalAttendees, setTotalAttendees] = useState<number>(0)
     const [evalResponseLength, setEvalResponseLength] = useState<number>(0)
+    const [isExporting, setIsExporting] = useState<boolean>(false)
 
     const { toast } = useToast()
 
@@ -125,6 +126,39 @@ function TrainingDetail() {
       }
     }
 
+    const downloadPDF = async (trainingId) => {
+      setIsExporting(true)
+      try {
+        const response = await axios({
+          url: `http://localhost:8080/api/evaluation/logs/${trainingId}/pdf`, // Adjust the endpoint URL as needed
+          method: "GET",
+          responseType: "blob", // Important: This tells Axios to expect a binary file
+        });
+
+        const blob = new Blob([response.data], { type: "application/zip" });
+
+        // Create a link element to trigger the download
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `responses_training_${trainingId}.zip`); // Customize the file name
+        document.body.appendChild(link);
+        link.click();
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      } catch (error) {
+          console.error('Error downloading PDF:', error);
+          toast({
+              variant: "destructive",
+              description: "Failed to export training responses",
+              title: "Export failed",
+          })
+      } finally {
+          setIsExporting(false)
+      }
+
+  };
+
     const formatTime = (seconds: number) => {
       const hrs = Math.floor(seconds / 3600);
       const mins = Math.floor((seconds % 3600) / 60);
@@ -183,8 +217,18 @@ function TrainingDetail() {
               }
               {
                 training.status === "done" && (
-                  <Button size="sm">
-                    Export Reponses
+                  <Button
+                    size="sm"
+                    disabled={isExporting}
+                    onClick={() => downloadPDF(training.id)}
+                  >
+                    {isExporting ? (
+                        <>
+                            Exporting...
+                        </>
+                    ) : (
+                        'Export as PDF'
+                    )}
                   </Button>
                 )
               }

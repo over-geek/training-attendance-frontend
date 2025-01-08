@@ -15,12 +15,9 @@ import {
 import {MenuContent, MenuItem, MenuRoot, MenuTrigger} from "@/components/ui/menu";
 
 import { useState} from "react";
-import { createRoot } from "react-dom/client";
-import exportPDF from "@/services/exportPDF"
 
 import {deleteTraining} from "@/components/filter_table/data/trainingData";
 import {useToast} from "@/hooks/use-toast.ts";
-import TrainingAttendanceForm from "@/components/Templates/TrainingAttendanceForm.tsx";
 
 
 interface TableActionsProps {
@@ -85,7 +82,7 @@ export const TableActions = ({ row, onDelete }: TableActionsProps) => {
     return (
         <MenuRoot>
             <MenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                      <span className="sr-only">Open menu</span>
                      <DotsHorizontalIcon className="h-4 w-4" />
                 </Button>

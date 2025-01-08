@@ -57,3 +57,13 @@ export async function addTraining(training: Training): Promise<boolean> {
         return false;
     }
 }
+
+export async function updateTrainingStatus(id: string, status: string) {
+    try {
+        const response = await axios.patch(`http://localhost:8080/api/trainings/${id}/status`, { status });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating training status:", error);
+        throw error;
+    }
+}

@@ -1,4 +1,4 @@
-import NewTrainingForm from "../components/NewTrainingForm.jsx";
+import NewTrainingForm from "../../components/NewTrainingForm.jsx";
 
 const NewTraining = () => {
   return (

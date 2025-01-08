@@ -1,5 +1,16 @@
 import React, {useState} from 'react';
 import { Button } from "./ui/button.tsx"
+import {
+  DialogActionTrigger,
+  DialogContent,
+  DialogBody,
+  DialogFooter,
+  DialogHeader,
+  DialogCloseTrigger,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog"
 
 const TrainingQRCode = ({ trainingId }) => {
   const [qrData, setQrData] = useState(null);
@@ -27,20 +38,35 @@ const TrainingQRCode = ({ trainingId }) => {
 
   return (
       <div>
-        <div>
-          <Button onClick={generateQRCode}>Generate QR</Button>
-        </div>
-        {qrData && (
-            <div>
-              <img
-                  src={`data:image/png;base64,${qrData.qrImage}`}
-                  alt="QR Code"
-              />
-              <p>
-                or use this link: <a href={qrData.qrUrl}>{qrData.qrUrl}</a>
-              </p>
-            </div>
-        )}
+        <DialogRoot>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" onClick={generateQRCode}>
+              Take Responses
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="px-5 py-5 flex flex-col gap-5 mt-10">
+            <DialogHeader>
+              <DialogTitle>Training Evaluation Form</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              {qrData && (
+                <div>
+                  <div className='flex justify-center'>
+                    <img
+                      src={`data:image/png;base64,${qrData.qrImage}`}
+                      alt="QR Code"
+                    />
+                  </div>
+                  
+                  <p>
+                    or use this link: <a href={qrData.qrUrl}>{qrData.qrUrl}</a>
+                  </p>
+                </div>
+              )}
+            </DialogBody>
+            <DialogCloseTrigger />
+          </DialogContent>
+        </DialogRoot>
       </div>
   );
 };

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import {
     ColumnFiltersState,
     SortingState,
@@ -30,6 +31,8 @@ import {fetchTrainingData} from "./data/trainingData"
 import {useEffect, useState} from "react";
 
 export function DataTable() {
+    const navigate = useNavigate()
+
     const [data, setData] = useState<Training[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
@@ -38,6 +41,10 @@ export function DataTable() {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
+
+    const handleRowClick = (training: Training) => {
+        navigate(`/trainings/${training.id}`, { state: { training } })
+    }
 
     useEffect(() => {
         const loadData = async () => {
@@ -76,6 +83,8 @@ export function DataTable() {
         }
     })
 
+    console.log(table.getHeaderGroups())
+
     if (loading) {
         return <div>Loading...</div>
     }
@@ -111,6 +120,8 @@ export function DataTable() {
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    onClick={() => handleRowClick(row.original)}
+                                    className="cursor-pointer"
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>

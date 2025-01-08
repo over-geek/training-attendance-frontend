@@ -16,12 +16,13 @@ function OverallPage() {
   const handleSubmit = async () => {
     const submissionData = {
       ...responses,
-      q9Response: overallRating,
+      response9: overallRating,
       additionalComment: comments,
       token
     }
 
     try {
+      console.log(submissionData)
       const response = await evalApi.post('/submit', submissionData)
       console.log('response: ', response)
       if (response.status === 200) {
@@ -46,11 +47,11 @@ function OverallPage() {
                     value={[overallRating]}
                     onValueChange={({ value }) => setOverallRating(value[0])}
                     min={1}
-                    max={5}
+                    max={4}
                     step={1}
                 />
               </div>
-              <div>5</div>
+              <div>4</div>
             </div>
             <div className="flex justify-between">
               <p>Poor</p>

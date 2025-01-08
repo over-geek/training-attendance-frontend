@@ -3,12 +3,12 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import {Provider} from "@/components/ui/provider.tsx";
 import Dashboard from './pages/Dashboard'
-import Trainings from './pages/Trainings'
+import Trainings from './pages/Training/Trainings.jsx'
 import Reports from './pages/Reports'
 import Responses from './pages/Responses'
 import AttendanceLogs from './pages/AttendanceLogs'
-import TrainingsHome from "./pages/TrainingsHome.jsx";
-import NewTraining from "./pages/NewTraining.jsx";
+import TrainingsHome from "./pages/Training/TrainingsHome.jsx";
+import NewTraining from "./pages/Training/NewTraining.jsx";
 import './index.css'
 import App from './App.jsx'
 import EvaluationPage from "./pages/Evaluation/EvaluationPage.jsx";
@@ -17,6 +17,7 @@ import GradingPage from "./pages/Evaluation/GradingPage.jsx";
 import QuestionsPage from "./pages/Evaluation/QuestionsPage.jsx";
 import OverallPage from "./pages/Evaluation/OverallPage.jsx";
 import SuccessPage from './pages/Evaluation/SuccessPage.jsx';
+import TrainingDetail from './pages/Training/TrainingDetail.tsx';
 
 const router = createBrowserRouter([
     {
@@ -26,7 +27,8 @@ const router = createBrowserRouter([
             { path: 'dashboard', element: <Dashboard /> },
             { path: 'trainings', element: <Trainings />, children:[
                     { path: '', element: <TrainingsHome /> },
-                    { path: 'new', element: <NewTraining /> }
+                    { path: 'new', element: <NewTraining /> },
+                    { path: ':id', element: <TrainingDetail /> },
                 ] },
             { path: 'reports', element: <Reports /> },
             { path: 'responses', element: <Responses /> },

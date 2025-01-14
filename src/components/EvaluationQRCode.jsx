@@ -12,7 +12,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 
-const TrainingQRCode = ({ trainingId }) => {
+const TrainingQRCode = ({ trainingId, status }) => {
   const [qrData, setQrData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +40,12 @@ const TrainingQRCode = ({ trainingId }) => {
       <div>
         <DialogRoot>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" onClick={generateQRCode}>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={generateQRCode}
+              disabled={status === "upcoming"}
+            >
               Take Responses
             </Button>
           </DialogTrigger>

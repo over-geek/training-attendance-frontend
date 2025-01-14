@@ -32,7 +32,7 @@ import { Attendance } from "../../components/filter_table/data/type"
 import {useEffect, useState} from "react";
 import axios from "axios";
 import { fetchEvalResponseLength } from "@/services/utils.js"
-import { updateTrainingStatus } from "@/components/filter_table/data/trainingData"
+import { updateTrainingStatus, startTrainingSession, fetchTrainingById, endTrainingSession } from "@/components/filter_table/data/trainingData"
 
 function TrainingDetail() {
     const { id } = useParams()
@@ -41,8 +41,6 @@ function TrainingDetail() {
     const [data, setData] = useState<Attendance[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
-    const [remainingTime, setRemainingTime] = useState<number | null>(null)
-    const [isCountingDown, setIsCountingDown] = useState<boolean>(false)
     const [totalAttendees, setTotalAttendees] = useState<number>(0)
     const [evalResponseLength, setEvalResponseLength] = useState<number>(0)
     const [isExporting, setIsExporting] = useState<boolean>(false)
@@ -51,68 +49,81 @@ function TrainingDetail() {
 
     useEffect(() => {
       if (id) {
-        const fetchAttendanceLogs = async () => {
+        const fetchData = async () => {
           try {
-            setLoading(true)
-            const response = await axios.get(`http://localhost:8080/api/attendance/logs/${id}`)
-            const evalResponseLength = await fetchEvalResponseLength(id)
-            const logs = response.data.attendees
-            setTotalAttendees(logs.length)
-            setEvalResponseLength(evalResponseLength)
-            setData(logs)
-          } catch (error) {
-            setError('Failed to load attendance Logs')
-          } finally {
-            setLoading(false)
-          }
-        }
-        fetchAttendanceLogs()
-      }
-    }, [id])
+            setLoading(true);
+            const [trainingData, attendanceResponse] = await Promise.all([
+              fetchTrainingById(id),
+              axios.get(`http://localhost:8080/api/attendance/logs/${id}`)
+            ]);
+            
+            if (trainingData) {
+              setTraining(trainingData);
+            }
 
-    useEffect(() => {
-      let timer: NodeJS.Timeout | undefined;
-      if (isCountingDown && remainingTime !== null && remainingTime > 0) {
-        timer = setInterval(() => {
-          setRemainingTime((prev) => (prev !== null ? prev - 1 : null));
-        }, 1000);
+            const evalResponseLength = await fetchEvalResponseLength(id);
+            const logs = attendanceResponse.data.attendees;
+            setTotalAttendees(logs.length);
+            setEvalResponseLength(evalResponseLength);
+            setData(logs);
+          } catch (error) {
+            setError('Failed to load data');
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchData();
       }
-      if (remainingTime === 0) {
-        clearInterval(timer);
-        setIsCountingDown(false);
-        toast({
-          description: "Training session has ended!",
-        });
-      }
-      return () => clearInterval(timer);
-    }, [isCountingDown, remainingTime]);
+    }, [id]);
 
     const handleStartSession = async () => {
-      if (!id) return;
-      const response = await updateTrainingStatus(id, "in progress")
-      if (response) {
-        toast({
-            description: "Training Session Started",
-        });
-        const durationInSeconds = parseInt(training.duration, 10) * 3600; // Convert hours to seconds
-        setRemainingTime(durationInSeconds);
-        setIsCountingDown(true);
-        setTraining((prev) => ({ ...prev, status: response.status }));
-      } else {
-          toast({
-              variant: "destructive",
-              description: "There was a problem starting the training",
-              title: "Uh oh! Something went wrong",
-          });
-      }
-      console.log(response)
-      setTraining((prev) => ({ ...prev, status: response.status }))
+        if (!id) return;
+        
+        try {
+            // Show immediate feedback to user
+            toast({
+                description: "Training Session Started",
+            });
+            
+            // Update local state immediately
+            setTraining((prev) => ({ ...prev, status: "in progress" }));
+
+            // Start both operations in parallel
+            const [sessionStarted, response] = await Promise.all([
+                startTrainingSession(id),
+                updateTrainingStatus(id, "in progress")
+            ]);
+
+            if (!sessionStarted || !response) {
+                // Revert the state if either operation fails
+                setTraining((prev) => ({ ...prev, status: "upcoming" }));
+                
+                toast({
+                    variant: "destructive",
+                    description: "There was a problem starting the training",
+                    title: "Uh oh! Something went wrong",
+                });
+            }
+        } catch (error) {
+            // Revert the state if there's an error
+            setTraining((prev) => ({ ...prev, status: "upcoming" }));
+            
+            toast({
+                variant: "destructive",
+                description: "There was a problem starting the training",
+                title: "Uh oh! Something went wrong",
+            });
+        }
     }
 
     const handleEndSession = async () => {
       if (!id) return;
-      const response = await updateTrainingStatus(id, "done")
-      if (response) {
+      // const response = await updateTrainingStatus(id, "done")
+      const [sessionEnded, response] = await Promise.all([
+        endTrainingSession(id),
+        updateTrainingStatus(id, "done")
+      ])
+      if (response && sessionEnded) {
         toast({
             description: "Training Session Ended",
         });
@@ -130,9 +141,9 @@ function TrainingDetail() {
       setIsExporting(true)
       try {
         const response = await axios({
-          url: `http://localhost:8080/api/evaluation/logs/${trainingId}/pdf`, // Adjust the endpoint URL as needed
+          url: `http://localhost:8080/api/evaluation/logs/${trainingId}/pdf`,
           method: "GET",
-          responseType: "blob", // Important: This tells Axios to expect a binary file
+          responseType: "blob",
         });
 
         const blob = new Blob([response.data], { type: "application/zip" });
@@ -200,7 +211,7 @@ function TrainingDetail() {
               </div>
             </div>
             <div className="flex gap-4">
-              <TrainingQrCode trainingId={id} />
+              <TrainingQrCode trainingId={id} status={training.status} />
               {
                 training.status === "upcoming" && (
                   <Button onClick={handleStartSession} size="sm">
@@ -234,11 +245,6 @@ function TrainingDetail() {
               }
             </div>
           </div>
-          {isCountingDown && remainingTime !== null && (
-            <div className="text-center text-xl font-bold text-red-500">
-              Time Remaining: {formatTime(remainingTime)}
-            </div>
-          )}
           <div className="flex gap-8">
             <StatsCards statTitle="Recorded Responses" statScore={evalResponseLength} />
             <StatsCards statTitle="Recorded Attendees" statScore={totalAttendees} />

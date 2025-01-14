@@ -39,10 +39,15 @@ export async function fetchTrainingStats(): Promise<{ upcomingTrainings: number;
 
 export async function deleteTraining(id: string): Promise<boolean> {
     try {
-        await axios.delete(`${API_URL}/${id}`);
-        return true;
+        console.log(`Attempting to delete training at: ${API_URL}/${id}`);
+        const response = await axios.delete(`${API_URL}/${id}`);
+        return response.status >= 200 && response.status < 300;
     } catch (error) {
         console.error("Error deleting training:", error);
+        if (axios.isAxiosError(error)) {
+            console.error("Status:", error.response?.status);
+            console.error("Server response:", error.response?.data);
+        }
         return false;
     }
 }
@@ -65,5 +70,41 @@ export async function updateTrainingStatus(id: string, status: string) {
     } catch (error) {
         console.error("Error updating training status:", error);
         throw error;
+    }
+}
+
+export async function startTrainingSession(id: string): Promise<boolean> {
+    try {
+        const response = await axios.post(`http://localhost:8080/api/card-reader/start-session/${id}`);
+        return response.status >= 200 && response.status < 300;
+    } catch (error) {
+        console.error("Error starting training session:", error);
+        return false;
+    }
+}
+
+export async function fetchTrainingById(id: string): Promise<Training | null> {
+    try {
+        const response = await axios.get(`${API_URL}/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching training:", error);
+        return null;
+    }
+}
+
+export async function endTrainingSession(id: string): Promise<boolean> {
+    try {
+        const response = await axios.post(`http://localhost:8080/api/card-reader/end-session/${id}`);
+        if (response.status >= 200 && response.status < 300 ) {
+            console.log("Training session ended successfully");
+            return response.status >= 200 && response.status < 300;
+        } else {
+            console.error("Error ending training session:", response);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error ending training session:", error);
+        return false;
     }
 }

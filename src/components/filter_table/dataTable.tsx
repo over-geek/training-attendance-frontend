@@ -83,8 +83,6 @@ export function DataTable() {
         }
     })
 
-    console.log(table.getHeaderGroups())
-
     if (loading) {
         return <div>Loading...</div>
     }

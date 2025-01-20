@@ -29,23 +29,160 @@ import TrainingQrCode from "../../components/EvaluationQRCode.jsx"
 import { columns } from "./AttendanceColumns"
 import { DataTablePagination } from "../../components/filter_table/tablePagination"
 import { Attendance } from "../../components/filter_table/data/type"
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import axios from "axios";
 import { fetchEvalResponseLength } from "@/services/utils.js"
 import { updateTrainingStatus, startTrainingSession, fetchTrainingById, endTrainingSession } from "@/components/filter_table/data/trainingData"
 
+interface Training {
+  id: string;
+  agenda: string;
+  facilitator: string;
+  status: string;
+}
+
+interface WebSocketMessage {
+  type: 'ATTENDANCE' | 'ERROR';
+  data: {
+    name: string;
+    department: string;
+  };
+  message?: string;
+}
+
+interface AttendanceLog {
+  id: string;
+  employeeName: string;
+  employeeId?: string;
+  employeeDepartment: string;
+  createdOn: string;
+}
+
 function TrainingDetail() {
     const { id } = useParams()
     const location = useLocation()
-    const [training, setTraining] = useState(location.state?.training);
+    const [training, setTraining] = useState<Training | null>(location.state?.training);
     const [data, setData] = useState<Attendance[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
     const [totalAttendees, setTotalAttendees] = useState<number>(0)
     const [evalResponseLength, setEvalResponseLength] = useState<number>(0)
     const [isExporting, setIsExporting] = useState<boolean>(false)
+    const websocket = useRef<WebSocket | null>(null)
 
     const { toast } = useToast()
+
+    useEffect(() => {
+      return () => {
+        if (websocket.current) {
+          console.log("Cleaning up WebSocket connection");
+          websocket.current.close();
+          websocket.current = null;
+        }
+      };
+    }, []);
+
+    const connectWebSocket = () => {
+      if (websocket.current?.readyState === WebSocket.OPEN) {
+        console.log("WebSocket already connected");
+        return;
+      }
+
+      let ws: WebSocket | null = null;
+      try {
+        console.log("Connecting to websocket...");
+        ws = new WebSocket('ws://localhost:8080/ws');
+      } catch (error) {
+        console.error('Failed to connect to WebSocket:', error);
+        return;
+      }
+
+      if (!ws) return;
+
+      ws.onopen = () => {
+        console.log('WebSocket Connected');
+        
+        // Send an initial message to subscribe to the training's attendance updates
+        ws.send(JSON.stringify({
+          type: 'SUBSCRIBE',
+          trainingId: id
+        }));
+        
+        // Set up heartbeat
+        const heartbeat = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' }));
+            console.log('Heartbeat sent');
+          }
+        }, 15000); // Every 15 seconds
+
+        // Clean up heartbeat when connection closes
+        ws.onclose = () => {
+          clearInterval(heartbeat);
+          console.log('WebSocket connection closed');
+          // Only attempt to reconnect if the training is still in progress
+          if (training?.status === "in progress") {
+            console.log('Attempting to reconnect...');
+            setTimeout(() => connectWebSocket(), 3000);
+          }
+        };
+      };
+
+      ws.onmessage = (event) => {
+        console.log("Raw message received:", event.data);
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+          console.log("Parsed websocket message:", message);
+          
+          if (message.type === 'ATTENDANCE') {
+            // Transform the data to match your Attendance interface
+            const newAttendee: AttendanceLog = {
+              id: new Date().toISOString(), // or any unique identifier
+              employeeName: message.data.name,
+              employeeDepartment: message.data.department,
+              createdOn: new Date().toISOString(),
+            };
+
+            setData(prevData => {
+              // Check if attendee already exists to avoid duplicates
+              const exists = prevData.some(a => a.employeeName === newAttendee.employeeName);
+              if (!exists) {
+                console.log("Adding new attendee:", newAttendee);
+                return [...prevData, newAttendee];
+              }
+              return prevData;
+            });
+
+            setTotalAttendees(prev => prev + 1);
+            
+            toast({
+              title: "New Attendee",
+              description: `${newAttendee.employeeName} has joined the training`,
+            });
+          } else if (message.type === 'ERROR') {
+            console.error('WebSocket error message:', message.message);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: message.message,
+            });
+          }
+        } catch (error) {
+          console.error('Error processing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Failed to connect to attendance system. Retrying...",
+        });
+      };
+
+      websocket.current = ws;
+    };
 
     useEffect(() => {
       if (id) {
@@ -59,10 +196,15 @@ function TrainingDetail() {
             
             if (trainingData) {
               setTraining(trainingData);
+
+              if (trainingData.status === "in progress") {
+                connectWebSocket();
+              }
             }
 
             const evalResponseLength = await fetchEvalResponseLength(id);
             const logs = attendanceResponse.data.attendees;
+            console.log("Fetched logs:", logs);
             setTotalAttendees(logs.length);
             setEvalResponseLength(evalResponseLength);
             setData(logs);
@@ -77,44 +219,48 @@ function TrainingDetail() {
     }, [id]);
 
     const handleStartSession = async () => {
-        if (!id) return;
+      if (!id) return;
+      
+      try {
+        console.log("Starting training session...");
         
-        try {
-            // Show immediate feedback to user
-            toast({
-                description: "Training Session Started",
-            });
-            
-            // Update local state immediately
-            setTraining((prev) => ({ ...prev, status: "in progress" }));
+        // Show immediate feedback to user
+        toast({
+          description: "Training Session Started",
+        });
+        
+        // Update local state immediately
+        setTraining((prev: Training | null) => prev ? { ...prev, status: "in progress" } : null);
 
-            // Start both operations in parallel
-            const [sessionStarted, response] = await Promise.all([
-                startTrainingSession(id),
-                updateTrainingStatus(id, "in progress")
-            ]);
+        console.log("Initializing WebSocket connection...");
+        connectWebSocket();
 
-            if (!sessionStarted || !response) {
-                // Revert the state if either operation fails
-                setTraining((prev) => ({ ...prev, status: "upcoming" }));
-                
-                toast({
-                    variant: "destructive",
-                    description: "There was a problem starting the training",
-                    title: "Uh oh! Something went wrong",
-                });
-            }
-        } catch (error) {
-            // Revert the state if there's an error
-            setTraining((prev) => ({ ...prev, status: "upcoming" }));
-            
-            toast({
-                variant: "destructive",
-                description: "There was a problem starting the training",
-                title: "Uh oh! Something went wrong",
-            });
+        console.log("Starting backend session...");
+        // Start both operations in parallel
+        const [sessionStarted, response] = await Promise.all([
+          startTrainingSession(id),
+          updateTrainingStatus(id, "in progress")
+        ]);
+
+        console.log("Backend response:", { sessionStarted, response });
+
+        if (!sessionStarted || !response) {
+          console.error("Failed to start session:", { sessionStarted, response });
+          // Revert the state if either operation fails
+          setTraining((prev: Training | null) => prev ? { ...prev, status: "upcoming" } : null);
+          
+          toast({
+            variant: "destructive",
+            description: "There was a problem starting the training",
+            title: "Uh oh! Something went wrong",
+          });
         }
-    }
+        
+      } catch (error) {
+        console.error("Session start error:", error);
+        // ... rest of the error handling
+      }
+    };
 
     const handleEndSession = async () => {
       if (!id) return;
@@ -127,7 +273,7 @@ function TrainingDetail() {
         toast({
             description: "Training Session Ended",
         });
-        setTraining((prev) => ({ ...prev, status: response.status }));
+        setTraining((prev: Training | null) => prev ? { ...prev, status: response.status } : null);
       } else {
           toast({
               variant: "destructive",
@@ -137,7 +283,7 @@ function TrainingDetail() {
       }
     }
 
-    const downloadPDF = async (trainingId) => {
+    const downloadPDF = async (trainingId: string) => {
       setIsExporting(true)
       try {
         const response = await axios({

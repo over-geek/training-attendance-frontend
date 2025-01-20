@@ -29,94 +29,251 @@ import TrainingQrCode from "../../components/EvaluationQRCode.jsx"
 import { columns } from "./AttendanceColumns"
 import { DataTablePagination } from "../../components/filter_table/tablePagination"
 import { Attendance } from "../../components/filter_table/data/type"
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import axios from "axios";
 import { fetchEvalResponseLength } from "@/services/utils.js"
-import { updateTrainingStatus } from "@/components/filter_table/data/trainingData"
+import { updateTrainingStatus, startTrainingSession, fetchTrainingById, endTrainingSession } from "@/components/filter_table/data/trainingData"
+
+interface Training {
+  id: string;
+  agenda: string;
+  facilitator: string;
+  status: string;
+}
+
+interface WebSocketMessage {
+  type: 'ATTENDANCE' | 'ERROR';
+  data: {
+    name: string;
+    department: string;
+  };
+  message?: string;
+}
+
+interface AttendanceLog {
+  id: string;
+  employeeName: string;
+  employeeId?: string;
+  employeeDepartment: string;
+  createdOn: string;
+}
 
 function TrainingDetail() {
     const { id } = useParams()
     const location = useLocation()
-    const [training, setTraining] = useState(location.state?.training);
+    const [training, setTraining] = useState<Training | null>(location.state?.training);
     const [data, setData] = useState<Attendance[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
-    const [remainingTime, setRemainingTime] = useState<number | null>(null)
-    const [isCountingDown, setIsCountingDown] = useState<boolean>(false)
     const [totalAttendees, setTotalAttendees] = useState<number>(0)
     const [evalResponseLength, setEvalResponseLength] = useState<number>(0)
     const [isExporting, setIsExporting] = useState<boolean>(false)
+    const websocket = useRef<WebSocket | null>(null)
 
     const { toast } = useToast()
 
     useEffect(() => {
-      if (id) {
-        const fetchAttendanceLogs = async () => {
-          try {
-            setLoading(true)
-            const response = await axios.get(`http://localhost:8080/api/attendance/logs/${id}`)
-            const evalResponseLength = await fetchEvalResponseLength(id)
-            const logs = response.data.attendees
-            setTotalAttendees(logs.length)
-            setEvalResponseLength(evalResponseLength)
-            setData(logs)
-          } catch (error) {
-            setError('Failed to load attendance Logs')
-          } finally {
-            setLoading(false)
-          }
+      return () => {
+        if (websocket.current) {
+          console.log("Cleaning up WebSocket connection");
+          websocket.current.close();
+          websocket.current = null;
         }
-        fetchAttendanceLogs()
+      };
+    }, []);
+
+    const connectWebSocket = () => {
+      if (websocket.current?.readyState === WebSocket.OPEN) {
+        console.log("WebSocket already connected");
+        return;
       }
-    }, [id])
+
+      let ws: WebSocket | null = null;
+      try {
+        console.log("Connecting to websocket...");
+        ws = new WebSocket('ws://localhost:8080/ws');
+      } catch (error) {
+        console.error('Failed to connect to WebSocket:', error);
+        return;
+      }
+
+      if (!ws) return;
+
+      ws.onopen = () => {
+        console.log('WebSocket Connected');
+        
+        // Send an initial message to subscribe to the training's attendance updates
+        ws.send(JSON.stringify({
+          type: 'SUBSCRIBE',
+          trainingId: id
+        }));
+        
+        // Set up heartbeat
+        const heartbeat = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' }));
+            console.log('Heartbeat sent');
+          }
+        }, 15000); // Every 15 seconds
+
+        // Clean up heartbeat when connection closes
+        ws.onclose = () => {
+          clearInterval(heartbeat);
+          console.log('WebSocket connection closed');
+          // Only attempt to reconnect if the training is still in progress
+          if (training?.status === "in progress") {
+            console.log('Attempting to reconnect...');
+            setTimeout(() => connectWebSocket(), 3000);
+          }
+        };
+      };
+
+      ws.onmessage = (event) => {
+        console.log("Raw message received:", event.data);
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+          console.log("Parsed websocket message:", message);
+          
+          if (message.type === 'ATTENDANCE') {
+            // Transform the data to match your Attendance interface
+            const newAttendee: AttendanceLog = {
+              id: new Date().toISOString(), // or any unique identifier
+              employeeName: message.data.name,
+              employeeDepartment: message.data.department,
+              createdOn: new Date().toISOString(),
+            };
+
+            setData(prevData => {
+              // Check if attendee already exists to avoid duplicates
+              const exists = prevData.some(a => a.employeeName === newAttendee.employeeName);
+              if (!exists) {
+                console.log("Adding new attendee:", newAttendee);
+                return [...prevData, newAttendee];
+              }
+              return prevData;
+            });
+
+            setTotalAttendees(prev => prev + 1);
+            
+            toast({
+              title: "New Attendee",
+              description: `${newAttendee.employeeName} has joined the training`,
+            });
+          } else if (message.type === 'ERROR') {
+            console.error('WebSocket error message:', message.message);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: message.message,
+            });
+          }
+        } catch (error) {
+          console.error('Error processing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Failed to connect to attendance system. Retrying...",
+        });
+      };
+
+      websocket.current = ws;
+    };
 
     useEffect(() => {
-      let timer: NodeJS.Timeout | undefined;
-      if (isCountingDown && remainingTime !== null && remainingTime > 0) {
-        timer = setInterval(() => {
-          setRemainingTime((prev) => (prev !== null ? prev - 1 : null));
-        }, 1000);
+      if (id) {
+        const fetchData = async () => {
+          try {
+            setLoading(true);
+            const [trainingData, attendanceResponse] = await Promise.all([
+              fetchTrainingById(id),
+              axios.get(`http://localhost:8080/api/attendance/logs/${id}`)
+            ]);
+            
+            if (trainingData) {
+              setTraining(trainingData);
+
+              if (trainingData.status === "in progress") {
+                connectWebSocket();
+              }
+            }
+
+            const evalResponseLength = await fetchEvalResponseLength(id);
+            const logs = attendanceResponse.data.attendees;
+            console.log("Fetched logs:", logs);
+            setTotalAttendees(logs.length);
+            setEvalResponseLength(evalResponseLength);
+            setData(logs);
+          } catch (error) {
+            setError('Failed to load data');
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchData();
       }
-      if (remainingTime === 0) {
-        clearInterval(timer);
-        setIsCountingDown(false);
-        toast({
-          description: "Training session has ended!",
-        });
-      }
-      return () => clearInterval(timer);
-    }, [isCountingDown, remainingTime]);
+    }, [id]);
 
     const handleStartSession = async () => {
       if (!id) return;
-      const response = await updateTrainingStatus(id, "in progress")
-      if (response) {
+      
+      try {
+        console.log("Starting training session...");
+        
+        // Show immediate feedback to user
         toast({
-            description: "Training Session Started",
+          description: "Training Session Started",
         });
-        const durationInSeconds = parseInt(training.duration, 10) * 3600; // Convert hours to seconds
-        setRemainingTime(durationInSeconds);
-        setIsCountingDown(true);
-        setTraining((prev) => ({ ...prev, status: response.status }));
-      } else {
+        
+        // Update local state immediately
+        setTraining((prev: Training | null) => prev ? { ...prev, status: "in progress" } : null);
+
+        console.log("Initializing WebSocket connection...");
+        connectWebSocket();
+
+        console.log("Starting backend session...");
+        // Start both operations in parallel
+        const [sessionStarted, response] = await Promise.all([
+          startTrainingSession(id),
+          updateTrainingStatus(id, "in progress")
+        ]);
+
+        console.log("Backend response:", { sessionStarted, response });
+
+        if (!sessionStarted || !response) {
+          console.error("Failed to start session:", { sessionStarted, response });
+          // Revert the state if either operation fails
+          setTraining((prev: Training | null) => prev ? { ...prev, status: "upcoming" } : null);
+          
           toast({
-              variant: "destructive",
-              description: "There was a problem starting the training",
-              title: "Uh oh! Something went wrong",
+            variant: "destructive",
+            description: "There was a problem starting the training",
+            title: "Uh oh! Something went wrong",
           });
+        }
+        
+      } catch (error) {
+        console.error("Session start error:", error);
+        // ... rest of the error handling
       }
-      console.log(response)
-      setTraining((prev) => ({ ...prev, status: response.status }))
-    }
+    };
 
     const handleEndSession = async () => {
       if (!id) return;
-      const response = await updateTrainingStatus(id, "done")
-      if (response) {
+      // const response = await updateTrainingStatus(id, "done")
+      const [sessionEnded, response] = await Promise.all([
+        endTrainingSession(id),
+        updateTrainingStatus(id, "done")
+      ])
+      if (response && sessionEnded) {
         toast({
             description: "Training Session Ended",
         });
-        setTraining((prev) => ({ ...prev, status: response.status }));
+        setTraining((prev: Training | null) => prev ? { ...prev, status: response.status } : null);
       } else {
           toast({
               variant: "destructive",
@@ -126,13 +283,13 @@ function TrainingDetail() {
       }
     }
 
-    const downloadPDF = async (trainingId) => {
+    const downloadPDF = async (trainingId: string) => {
       setIsExporting(true)
       try {
         const response = await axios({
-          url: `http://localhost:8080/api/evaluation/logs/${trainingId}/pdf`, // Adjust the endpoint URL as needed
+          url: `http://localhost:8080/api/evaluation/logs/${trainingId}/pdf`,
           method: "GET",
-          responseType: "blob", // Important: This tells Axios to expect a binary file
+          responseType: "blob",
         });
 
         const blob = new Blob([response.data], { type: "application/zip" });
@@ -200,7 +357,7 @@ function TrainingDetail() {
               </div>
             </div>
             <div className="flex gap-4">
-              <TrainingQrCode trainingId={id} />
+              <TrainingQrCode trainingId={id} status={training.status} />
               {
                 training.status === "upcoming" && (
                   <Button onClick={handleStartSession} size="sm">
@@ -234,11 +391,6 @@ function TrainingDetail() {
               }
             </div>
           </div>
-          {isCountingDown && remainingTime !== null && (
-            <div className="text-center text-xl font-bold text-red-500">
-              Time Remaining: {formatTime(remainingTime)}
-            </div>
-          )}
           <div className="flex gap-8">
             <StatsCards statTitle="Recorded Responses" statScore={evalResponseLength} />
             <StatsCards statTitle="Recorded Attendees" statScore={totalAttendees} />

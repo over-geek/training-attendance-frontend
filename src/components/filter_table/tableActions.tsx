@@ -91,7 +91,12 @@ export const TableActions = ({ row, onDelete }: TableActionsProps) => {
                 <MenuItem value="delete">
                     <DialogRoot role="alertdialog" open={dialogOpen} onOpenChange={(details) => setDialogOpen(details.open)}>
                         <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="w-full justify-start">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="w-full justify-start"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 Delete
                             </Button>
                         </DialogTrigger>
@@ -107,11 +112,22 @@ export const TableActions = ({ row, onDelete }: TableActionsProps) => {
                             </DialogBody>
                             <DialogFooter>
                                 <DialogActionTrigger asChild>
-                                    <Button variant="outline" className="border px-4">Cancel</Button>
+                                    <Button 
+                                        variant="outline" 
+                                        className="border px-4"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setDialogOpen(false)
+                                        }}
+                                    >Cancel</Button>
                                 </DialogActionTrigger>
                                 <Button
                                     className="bg-red-500 px-4 "
-                                    onClick={handleDelete}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDelete()
+                                    }}
+                                    
                                 >
                                     Delete
                                 </Button>
@@ -121,12 +137,22 @@ export const TableActions = ({ row, onDelete }: TableActionsProps) => {
                     </DialogRoot>
                 </MenuItem>
                 <MenuItem value="edit">
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         Edit
                     </Button>
                 </MenuItem>
                 <MenuItem value="start-session">
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         Start Session
                     </Button>
                 </MenuItem>

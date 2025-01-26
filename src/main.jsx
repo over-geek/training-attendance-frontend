@@ -30,9 +30,6 @@ const router = createBrowserRouter([
                     { path: 'new', element: <NewTraining /> },
                     { path: ':id', element: <TrainingDetail /> },
                 ] },
-            { path: 'reports', element: <Reports /> },
-            { path: 'responses', element: <Responses /> },
-            { path: 'attendance-logs', element: <AttendanceLogs /> },
             { path: 'evaluation/:token', element: <EvaluationPage />, children: [
                 {path: '', element: <HomePage />},
                 {path: '1', element: <GradingPage />},

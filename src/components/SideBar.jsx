@@ -1,9 +1,6 @@
 import { Link } from 'react-router-dom'
 import logo from '../assets/images/logo.svg'
 import logoImg from '../assets/images/logo_icps.png'
-import reportIcon from '../assets/images/reportIcon.png';
-import responseIcon from '../assets/images/responseIcon.png'
-import attendanceIcon from '../assets/images/attendanceIcon.png'
 import trainingIcon from '../assets/images/training.png'
 import dashboardIcon from '../assets/images/dashboard.png'
 
@@ -25,21 +22,6 @@ const SideBar = () => {
             <Link to="/trainings" className="flex gap-2 items-center px-2 py-2 rounded-lg">
               <img src={trainingIcon} alt="training icon" className="w-8" />Trainings
             </Link>
-          </li>
-          <li>
-            <Link to="/reports" className="flex gap-2 items-center px-2 py-2 rounded-lg">
-              <img src={reportIcon} alt="response icon" className="w-8" />Reports
-            </Link>
-          </li>
-          <li>
-          <Link to="/responses" className="flex gap-2 items-center px-2 py-2 rounded-lg">
-            <img src={responseIcon} alt="response icon" className="w-8" />Responses
-          </Link>
-          </li>
-          <li>
-          <Link to="/attendance-logs" className="flex gap-2 items-center px-2 py-2 rounded-lg">
-            <img src={attendanceIcon} alt="training icon" className="w-8" />Attendance Logs
-          </Link>
           </li>
         </ul>
       </nav>

@@ -3,3 +3,23 @@
   padding: 0;
   margin: 0;
 }
+
+.br-2 {
+  border-radius: 10px;
+}
+
+.br-1 {
+  border-radius: 5px;
+}
+
+.stats-bg-gray-100 {
+  background-color: #eff1f5;
+}
+
+.stats-bg-gray-50 {
+  background-color: #f8fafc;
+}
+
+.stats-bg-teal-25 {
+  background-color: #f6fef9;
+}

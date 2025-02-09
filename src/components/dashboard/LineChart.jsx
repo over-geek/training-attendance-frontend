@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import Chart from 'react-apexcharts'
 
+
 class LineChart extends Component {
   constructor(props) {
     super(props);
@@ -34,11 +35,14 @@ class LineChart extends Component {
         },
         tooltip: {
           x: {
-            show: false
+            show: true
           }
         },
+        title: {
+          text: this.props.title,
+        },
         xaxis: {
-          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          categories: this.props.data.attendeeDates,
           labels: {
             show: false
           },
@@ -58,7 +62,7 @@ class LineChart extends Component {
       series: [
         {
           name: 'training',
-          data: [30, 40, 25, 50, 49, 60],
+          data: this.props.data.attendeeCount,
           color: "#1A56DB"
         }
       ]

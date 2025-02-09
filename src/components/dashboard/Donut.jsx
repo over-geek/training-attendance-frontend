@@ -22,6 +22,11 @@ const Donut = ({ data }) => {
     },
     colors: ['#0c8FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'],
     labels: ['Excellent', 'Very Good', 'Good', 'Poor'],
+    grid: {
+      padding: {
+        bottom: -100
+      }
+    },
   };
 
   return (

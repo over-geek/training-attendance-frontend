@@ -6,11 +6,10 @@ import dashboardIcon from '../assets/images/dashboard.png'
 
 const SideBar = () => {
   return (
-    <div className='w-1/6 border-x pt-4 px-5 h-full flex-shrink-0'>
+    <div className='w-1/6 pt-4 px-5 h-full flex-shrink-0'>
       <div className='w-full flex justify-start items-center gap-5'>
         <img src={logoImg} alt="logo" className='w-32'/>
       </div>
-      
       <nav className='mt-12'>
         <ul className='flex flex-col gap-8'>
           <li>

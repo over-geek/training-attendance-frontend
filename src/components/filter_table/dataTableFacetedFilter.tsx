@@ -18,7 +18,7 @@ import {
     PopoverRoot,
     PopoverContent,
     PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@chakra-ui/react"
 import { Separator } from "@/components/ui/separator"
 
 interface DataTableFacetedFilterProps<TData, TValue> {

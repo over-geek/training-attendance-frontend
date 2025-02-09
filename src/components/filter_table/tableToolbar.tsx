@@ -11,6 +11,7 @@ import {
 import { Training } from "./data/type"
 import { DataTableFacetedFilter } from "./dataTableFacetedFilter"
 import { statuses, trainingType } from "./data/data"
+import NewTrainingDialog from "../training/NewTrainingDialog"
 
 interface DataTableToolbarProps {
     table: Table<Training>
@@ -18,7 +19,7 @@ interface DataTableToolbarProps {
 
 export const DataTableToolbar = ({ table }: DataTableToolbarProps) => {
     return (
-        <div className="flex items-center py-4">
+        <div className="flex items-center justify-between py-4">
             <div className="flex space-x-2">
                 <Input
                     placeholder="Search by name..."
@@ -35,32 +36,35 @@ export const DataTableToolbar = ({ table }: DataTableToolbarProps) => {
                     <DataTableFacetedFilter options={trainingType} title="Training Type" column={table.getColumn("trainingType")} />
                 )}
             </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="ml-auto">
-                        Columns <ChevronDownIcon className="ml-2 h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    {table
-                        .getAllColumns()
-                        .filter((column) => column.getCanHide())
-                        .map((column) => {
-                            return (
-                                <DropdownMenuCheckboxItem
-                                    key={column.id}
-                                    className="capitalize"
-                                    checked={column.getIsVisible()}
-                                    onCheckedChange={(value) =>
-                                        column.toggleVisibility(!!value)
-                                    }
-                                >
-                                    {column.id}
-                                </DropdownMenuCheckboxItem>
-                            )
-                        })}
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex gap-3">
+                <NewTrainingDialog />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="ml-auto">
+                            Columns <ChevronDownIcon className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {table
+                            .getAllColumns()
+                            .filter((column) => column.getCanHide())
+                            .map((column) => {
+                                return (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        className="capitalize"
+                                        checked={column.getIsVisible()}
+                                        onCheckedChange={(value) =>
+                                            column.toggleVisibility(!!value)
+                                        }
+                                    >
+                                        {column.id}
+                                    </DropdownMenuCheckboxItem>
+                                )
+                            })}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     )
 }

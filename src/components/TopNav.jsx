@@ -42,7 +42,7 @@ const TopNav = ({ headerTitle, links }) => {
           </div>
         </div>
         <nav className="flex items-center justify-end gap-10">
-          <h2>Welcomed back, <span className="font-bold">Kwabena</span></h2>
+          <h2>Welcome back, <span className="font-bold">Kwabena</span></h2>
           <div>
             <div className="flex gap-2">
               <Avatar variant="solid" name="Kobby"/>

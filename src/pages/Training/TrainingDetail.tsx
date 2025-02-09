@@ -21,9 +21,10 @@ import {
 import StatsCards from "@/components/StatsCards.jsx"
 
 import {useToast} from "@/hooks/use-toast.ts"
-
+import { Separator } from "@/components/ui/separator.tsx"
 import { Button } from "@/components/ui/button"
 import { Status } from "@/components/ui/status"
+
 import TrainingQrCode from "../../components/EvaluationQRCode.jsx"
 
 import { columns } from "./AttendanceColumns"
@@ -31,8 +32,11 @@ import { DataTablePagination } from "../../components/filter_table/tablePaginati
 import { Attendance } from "../../components/filter_table/data/type"
 import {useEffect, useRef, useState} from "react";
 import axios from "axios";
-import { fetchEvalResponseLength } from "@/services/utils.js"
+import { fetchEvalResponseLength, fetchTrainingMetrics } from "@/services/utils.js"
 import { updateTrainingStatus, startTrainingSession, fetchTrainingById, endTrainingSession } from "@/components/filter_table/data/trainingData"
+import LineChart from "@/components/dashboard/LineChart.jsx"
+import { set } from "zod"
+import PieChart from "@/components/dashboard/PieChart.jsx"
 
 interface Training {
   id: string;
@@ -58,11 +62,17 @@ interface AttendanceLog {
   createdOn: string;
 }
 
+interface TrainingMetricData {
+  attendeeCount: number[];
+  departmentBreakdown: number[];
+}
+
 function TrainingDetail() {
     const { id } = useParams()
     const location = useLocation()
     const [training, setTraining] = useState<Training | null>(location.state?.training);
     const [data, setData] = useState<Attendance[]>([])
+    const [trainingMetric, setTrainingMetric] = useState<TrainingMetricData | null>(null)
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
     const [totalAttendees, setTotalAttendees] = useState<number>(0)
@@ -73,6 +83,7 @@ function TrainingDetail() {
     const { toast } = useToast()
 
     useEffect(() => {
+      console.log("training metric: ", trainingMetric)
       return () => {
         if (websocket.current) {
           console.log("Cleaning up WebSocket connection");
@@ -204,7 +215,10 @@ function TrainingDetail() {
 
             const evalResponseLength = await fetchEvalResponseLength(id);
             const logs = attendanceResponse.data.attendees;
-            console.log("Fetched logs:", logs);
+            const attendeeData = await fetchTrainingMetrics(training?.agenda);
+            setTrainingMetric(attendeeData);
+            console.log("Fetched attendees:", attendeeData);
+            console.log("Fetched logs:", trainingData);
             setTotalAttendees(logs.length);
             setEvalResponseLength(evalResponseLength);
             setData(logs);
@@ -316,13 +330,6 @@ function TrainingDetail() {
 
   };
 
-    const formatTime = (seconds: number) => {
-      const hrs = Math.floor(seconds / 3600);
-      const mins = Math.floor((seconds % 3600) / 60);
-      const secs = seconds % 60;
-      return `${hrs > 0 ? `${hrs}h ` : ""}${mins}m ${secs}s`;
-    };
-
     const table = useReactTable({
         data,
         columns,
@@ -391,9 +398,22 @@ function TrainingDetail() {
               }
             </div>
           </div>
-          <div className="flex gap-8">
-            <StatsCards statTitle="Recorded Responses" statScore={evalResponseLength} />
-            <StatsCards statTitle="Recorded Attendees" statScore={totalAttendees} />
+          <div className="flex gap-5 h-40">
+            <div className="flex gap-4 items-end">
+              <StatsCards statTitle="Total Attendees" statScore={totalAttendees} />
+              <StatsCards statTitle="Total Responses" statScore={evalResponseLength} />
+            </div>
+            <Separator orientation="vertical" />
+            <div className="br-1 bg-white py-3 ring-1 ring-inset ring-gray-100 shadow-sm">
+              <LineChart data={trainingMetric} title=" All time attendance rate" />
+            </div>
+            {
+              (trainingMetric?.departmentBreakdown?.length ?? 0) > 0 && (
+                <div className="h-full bg-white ring-1 ring-inset ring-gray-100 shadow-sm br-1">
+                  <PieChart data={trainingMetric} />
+                </div>
+              )
+            }
           </div>
           <div className="rounded-md border bg-white">
             <Table>

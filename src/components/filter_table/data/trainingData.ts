@@ -1,4 +1,5 @@
 import {Training} from "@/components/filter_table/data/type";
+import { postTraining } from "@/components/filter_table/data/type";
 import axios from "axios";
 
 const API_URL = "http://localhost:8080/api/trainings"
@@ -52,10 +53,10 @@ export async function deleteTraining(id: string): Promise<boolean> {
     }
 }
 
-export async function addTraining(training: Training): Promise<boolean> {
+export async function addTraining(training: postTraining): Promise<boolean> {
     try {
         await axios.post(API_URL, training);
-        console.log("Training added successfully");
+        console.log("Training added successfully: ", training);
         return true;
     } catch (error) {
         console.error("Error adding training:", error);

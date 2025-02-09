@@ -23,3 +23,16 @@
 .stats-bg-teal-25 {
   background-color: #f6fef9;
 }
+
+.text-10 {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.bg-grey-50 {
+  background-color: #f8fafc;
+}
+
+.max-h-75 {
+  max-height: 50%;
+}

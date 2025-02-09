@@ -27,7 +27,6 @@ const router = createBrowserRouter([
             { path: 'dashboard', element: <Dashboard /> },
             { path: 'trainings', element: <Trainings />, children:[
                     { path: '', element: <TrainingsHome /> },
-                    { path: 'new', element: <NewTraining /> },
                     { path: ':id', element: <TrainingDetail /> },
                 ] },
             { path: 'evaluation/:token', element: <EvaluationPage />, children: [

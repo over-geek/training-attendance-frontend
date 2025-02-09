@@ -11,7 +11,6 @@ const Trainings = () => {
             headerTitle="Employee Trainings"
             links={[
               { to: "", name: "Home" },
-              { to: "new", name: "New Training" },
             ]}
         />
       </div>
